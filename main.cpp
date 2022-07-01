@@ -39,6 +39,17 @@ int main(int argc, char** argv)
         }
     }
 
+    // TODO: get eigenvectors & eigenvalues from covariance matrix using QR algorithm with grant schmidt process
+    //auto a = GramSchmidt(covariance);
+
+    Mtx<3, 3> test =
+    {
+        12, -51, 4,
+        6, 167, -68,
+        -4, 24, -41
+    };
+    auto a = GramSchmidt(test);
+
     return 0;
 }
 

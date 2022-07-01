@@ -60,6 +60,40 @@ T Dot(const BaseVec<T, SIZE>& A, const BaseVec<T, SIZE>& B)
 	return sum;
 }
 
+template <typename T, size_t SIZE>
+BaseVec<T, SIZE> operator-(const BaseVec<T, SIZE>& A, const BaseVec<T, SIZE>& B)
+{
+	BaseVec<T, SIZE> ret;
+	for (size_t i = 0; i < SIZE; ++i)
+		ret[i] = A[i] - B[i];
+	return ret;
+}
+
+template <typename T, size_t SIZE>
+BaseVec<T, SIZE> operator*(const BaseVec<T, SIZE>& A, float B)
+{
+	BaseVec<T, SIZE> ret;
+	for (size_t i = 0; i < SIZE; ++i)
+		ret[i] = A[i] * B;
+	return ret;
+}
+
+template <typename T, size_t SIZE>
+BaseVec<T, SIZE> Normalize(const BaseVec<T, SIZE>& A)
+{
+	T len = (T)sqrt(Dot(A, A));
+	BaseVec<T, SIZE> ret;
+	for (size_t i = 0; i < SIZE; ++i)
+		ret[i] = A[i] / len;
+	return ret;
+}
+
+template <typename T, size_t SIZE>
+BaseVec<T, SIZE> ProjectVectorAOntoVectorB(const BaseVec<T, SIZE>& A, const BaseVec<T, SIZE>& B)
+{
+	return B * (Dot(A, B) / Dot(B, B));
+}
+
 // ==================================================== Matrix Math ====================================================
 
 template <typename T, size_t WIDTH, size_t HEIGHT>
@@ -84,9 +118,22 @@ BaseVec<T, HEIGHT> Column(const BaseMtx<T, WIDTH, HEIGHT>& A, size_t index)
 }
 
 template <typename T, size_t WIDTH, size_t HEIGHT>
+void SetColumn(BaseMtx<T, WIDTH, HEIGHT>& A, size_t index, const BaseVec<T, HEIGHT>& data)
+{
+	for (size_t i = 0; i < HEIGHT; ++i)
+		A[i][index] = data[i];
+}
+
+template <typename T, size_t WIDTH, size_t HEIGHT>
 BaseVec<T, WIDTH> Row(const BaseMtx<T, WIDTH, HEIGHT>& A, size_t index)
 {
 	return A[index];
+}
+
+template <typename T, size_t WIDTH, size_t HEIGHT>
+void SetRow(BaseMtx<T, WIDTH, HEIGHT>& A, size_t index, BaseVec<T, WIDTH>& data)
+{
+	A[index] = data;
 }
 
 template <typename T, size_t WIDTH, size_t HEIGHT>
@@ -177,4 +224,31 @@ void GaussJordanElimination(BaseMtx<T, WIDTH, HEIGHT>& augmentedMtx)
 				augmentedMtx[iy][ix] -= augmentedMtx[column][ix] * scale;
 		}
 	}
+}
+
+// Makes columns of matrix orthonormal
+// Uses the modified Gram-schmidt process which is more numerically stable
+// https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process#Numerical_stability
+template <typename T, size_t WIDTH, size_t HEIGHT>
+BaseMtx<T, WIDTH, HEIGHT> GramSchmidt(const BaseMtx<T, WIDTH, HEIGHT>& mtx)
+{
+	BaseMtx<T, WIDTH, HEIGHT> ret{};
+
+	// The 0th column is unchanged
+	SetColumn(ret, 0, Column(mtx, 0));
+
+	// every other column is adjusted to be orthogonal to the others before it
+	for (int column = 1; column < WIDTH; ++column)
+	{
+		BaseVec<T, HEIGHT> vec = Column(mtx, column);
+		for (int i = 0; i < column; ++i)
+			vec = vec - ProjectVectorAOntoVectorB(vec, Column(ret, i));
+		SetColumn(ret, column, vec);
+	}
+
+	// Normalize the column
+	for (int column = 0; column < WIDTH; ++column)
+		SetColumn(ret, column, Normalize(Column(ret, column)));
+
+	return ret;
 }
