@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <stdio.h>
 
 // ==================================================== BASE TYPES ====================================================
 
@@ -227,7 +228,7 @@ void GaussJordanElimination(BaseMtx<T, WIDTH, HEIGHT>& augmentedMtx)
 }
 
 // Makes columns of matrix orthonormal
-// Uses the modified Gram-schmidt process which is more numerically stable
+// Uses the modified Gram-Schmidt process which is more numerically stable
 // https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process#Numerical_stability
 template <typename T, size_t WIDTH, size_t HEIGHT>
 BaseMtx<T, WIDTH, HEIGHT> GramSchmidt(const BaseMtx<T, WIDTH, HEIGHT>& mtx)
@@ -250,5 +251,91 @@ BaseMtx<T, WIDTH, HEIGHT> GramSchmidt(const BaseMtx<T, WIDTH, HEIGHT>& mtx)
 	for (int column = 0; column < WIDTH; ++column)
 		SetColumn(ret, column, Normalize(Column(ret, column)));
 
+	return ret;
+}
+
+// https://en.wikipedia.org/wiki/QR_decomposition
+template <typename T, size_t SIZE>
+void QRDecomposition(const BaseMtxSq<T, SIZE>& mtx, BaseMtxSq<T, SIZE>& Q, BaseMtxSq<T, SIZE>& R)
+{
+	Q = GramSchmidt(mtx);
+	R = Multiply(Transpose(Q), mtx);
+}
+
+// Calculates Eigenvalues of a matrix
+// Iteratively uses QR decomposition and remakes the matrix as R*Q until convergence.
+// QR decomposition uses the Gram-Schmidt process (modified to the more stable version)
+template <typename T, size_t SIZE>
+BaseVec<T, SIZE> QRAlgorithm(const BaseMtxSq<T, SIZE>& mtx, int maxIterations, float maxError, const char* debugFileName = nullptr)
+{
+	BaseMtxSq<T, SIZE> m = mtx;
+	float maxabserror = 0.0f;
+	float avgerror = 0.0f;
+	int counterror = 0;
+
+	// Calculate the starting stats
+	for (int y = 0; y < SIZE; ++y)
+	{
+		for (int x = 0; x < SIZE; ++x)
+		{
+			if (x < y)
+			{
+				maxabserror = std::max(maxabserror, std::abs(m[y][x]));
+				counterror++;
+				avgerror = Lerp(avgerror, std::abs(m[y][x]), 1.0f / float(counterror));
+			}
+		}
+	}
+
+	FILE* file = nullptr;
+	if (debugFileName)
+	{
+		fopen_s(&file, debugFileName, "wt");
+
+		if (file)
+		{
+			fprintf(file, "\"Index\",\"Max\",\"Average\"\n");
+			fprintf(file, "\"0\",\"%f\",\"%f\"\n", maxabserror, avgerror);
+		}
+	}
+
+	for (int i = 0; i < maxIterations; ++i)
+	{
+		if (maxabserror < maxError)
+			break;
+
+		BaseMtxSq<T, SIZE> Q, R;
+		QRDecomposition(m, Q, R);
+		m = Multiply(R, Q);
+		
+		// Calculate stats
+		maxabserror = 0.0f;
+		avgerror = 0.0f;
+		counterror = 0;
+		for (int y = 0; y < SIZE; ++y)
+		{
+			for (int x = 0; x < SIZE; ++x)
+			{
+				if (x < y)
+				{
+					maxabserror = std::max(maxabserror, std::abs(m[y][x]));
+					counterror++;
+					avgerror = Lerp(avgerror, std::abs(m[y][x]), 1.0f / float(counterror));
+				}
+			}
+		}
+
+		// Log convergence if file is open
+		if (file)
+			fprintf(file, "\"%i\",\"%f\",\"%f\"\n", i + 1, maxabserror, avgerror);
+	}
+
+	if (file)
+		fclose(file);
+
+	// get the eigenvector
+	BaseVec<T, SIZE> ret;
+	for (int i = 0; i < SIZE; ++i)
+		ret[i] = m[i][i];
 	return ret;
 }

@@ -1,5 +1,6 @@
 #include "vecmath.h"
 #include <stdio.h>
+#include <direct.h>
 
 template <size_t WIDTH, size_t HEIGHT>
 using Mtx = BaseMtx<float, WIDTH, HEIGHT>;
@@ -9,6 +10,8 @@ using Vec = BaseVec<float, SIZE>;
 
 int main(int argc, char** argv)
 {
+    _mkdir("out");
+
     Mtx<3, 5> data =
     {
         90, 60, 90,
@@ -39,16 +42,10 @@ int main(int argc, char** argv)
         }
     }
 
-    // TODO: get eigenvectors & eigenvalues from covariance matrix using QR algorithm with grant schmidt process
-    //auto a = GramSchmidt(covariance);
+    // Get the eigenvalues
+    Vec<3> eigenValues = QRAlgorithm(covariance, 10000, 0.0001f, "out/error.csv");
 
-    Mtx<3, 3> test =
-    {
-        12, -51, 4,
-        6, 167, -68,
-        -4, 24, -41
-    };
-    auto a = GramSchmidt(test);
+    // TODO: solve for eigenvectors
 
     return 0;
 }
