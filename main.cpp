@@ -57,4 +57,12 @@ int main(int argc, char** argv)
 TODO:
 - link to this: https://towardsdatascience.com/the-mathematics-behind-principal-component-analysis-fff2d7f4b643
 
+
+PCA Algorithm:
+* part of it is:
+* get eigenvectors & eigenvalues from covariance matrix using QR algorithm with grant schmidt process
+ * Gram Schmidt: https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process
+ * QR Decomp: https://en.wikipedia.org/wiki/QR_decomposition
+ * QR algorithm: https://en.wikipedia.org/wiki/QR_algorithm
+ ! There are other eigenvector/value algorithms! and also other choices to make in QR decomp.
 */
