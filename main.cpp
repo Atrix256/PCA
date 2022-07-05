@@ -1,6 +1,7 @@
 #include "vecmath.h"
 #include <stdio.h>
 #include <direct.h>
+#include <algorithm>
 
 template <size_t WIDTH, size_t HEIGHT>
 using Mtx = BaseMtx<float, WIDTH, HEIGHT>;
@@ -43,9 +44,36 @@ int main(int argc, char** argv)
     }
 
     // Get the eigenvalues
-    Vec<3> eigenValues = QRAlgorithm(covariance, 10000, 0.0001f, "out/error.csv");
+    Vec<Columns(covariance)> eigenValues = QRAlgorithm(covariance, 10000, 0.0001f, "out/error.csv");
 
-    // TODO: solve for eigenvectors
+    // Sort from largest to smallest
+    std::sort(eigenValues.begin(), eigenValues.end(), [](float a, float b) {return a >= b; });
+
+    // Solve for eigenvectors for each eigenvalue
+    std::array<Vec<Columns(covariance)>, Columns(covariance)> eigenVectors;
+    for (int i = 0; i < eigenValues.size(); ++i)
+    {
+        eigenVectors[i] = InverseIteration(covariance, eigenValues[i], 100);
+
+        // Get a better eigen value
+        Vec<Columns(covariance)> test = Multiply(covariance, eigenVectors[i]);
+        for (int j = 0; j < Columns(covariance); ++j)
+        {
+            if (eigenVectors[i][j] != 0.0f)
+            {
+                eigenValues[i] = test[j] / eigenVectors[i][j];
+                break;
+            }
+        }
+
+        // TODO: temp test!
+        for (int j = 0; j < Columns(covariance); ++j)
+        {
+            eigenVectors[i][j] /= eigenVectors[i][Columns(covariance) - 1];
+        }
+    }
+
+    // TODO: do dimensional reduction and measure error as each dimension is reduced.
 
     return 0;
 }
@@ -53,13 +81,16 @@ int main(int argc, char** argv)
 /*
 TODO:
 - link to this: https://towardsdatascience.com/the-mathematics-behind-principal-component-analysis-fff2d7f4b643
-
+* Steve Canon says Householder reflections are better and easier to implement (for QR decomp i think)
+ * could also look at shifts.
 
 PCA Algorithm:
 * part of it is:
-* get eigenvectors & eigenvalues from covariance matrix using QR algorithm with grant schmidt process
+* get eigenvalues from covariance matrix using QR algorithm with grant schmidt process
  * Gram Schmidt: https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process
  * QR Decomp: https://en.wikipedia.org/wiki/QR_decomposition
  * QR algorithm: https://en.wikipedia.org/wiki/QR_algorithm
  ! There are other eigenvector/value algorithms! and also other choices to make in QR decomp.
+* get eigenvectors using inverse iteration algorithm. https://en.wikipedia.org/wiki/Inverse_iteration
+! you can get better eigenvalues i reckon at this point! not sure though
 */

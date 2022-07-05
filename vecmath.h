@@ -80,9 +80,15 @@ BaseVec<T, SIZE> operator*(const BaseVec<T, SIZE>& A, float B)
 }
 
 template <typename T, size_t SIZE>
+T Length(const BaseVec<T, SIZE>& A)
+{
+	return (T)sqrt(Dot(A, A));
+}
+
+template <typename T, size_t SIZE>
 BaseVec<T, SIZE> Normalize(const BaseVec<T, SIZE>& A)
 {
-	T len = (T)sqrt(Dot(A, A));
+	T len = Length(A);
 	BaseVec<T, SIZE> ret;
 	for (size_t i = 0; i < SIZE; ++i)
 		ret[i] = A[i] / len;
@@ -338,4 +344,43 @@ BaseVec<T, SIZE> QRAlgorithm(const BaseMtxSq<T, SIZE>& mtx, int maxIterations, f
 	for (int i = 0; i < SIZE; ++i)
 		ret[i] = m[i][i];
 	return ret;
+}
+
+// Get the approximation of the eigenvector associated with a given approximate eigenvalue
+// https://en.wikipedia.org/wiki/Inverse_iteration
+template <typename T, size_t SIZE>
+BaseVec<T, SIZE> InverseIteration(const BaseMtxSq<T, SIZE>& mtx, float eigenValue, int iterationCount)
+{
+	// first invert the matrix
+	BaseMtxSq<T, SIZE> mtxInverse;
+	{
+		BaseMtx<T, SIZE * 2, SIZE> augmentedMtx;
+
+		for (int row = 0; row < SIZE; ++row)
+		{
+			for (int column = 0; column < SIZE; ++column)
+			{
+				augmentedMtx[row][column] = mtx[row][column];
+				if (row == column)
+					augmentedMtx[row][column] -= eigenValue;
+
+				augmentedMtx[row][column + SIZE] = (row == column) ? 1.0f : 0.0f;
+			}
+		}
+
+		GaussJordanElimination(augmentedMtx);
+
+		for (int row = 0; row < SIZE; ++row)
+			for (int column = 0; column < SIZE; ++column)
+				mtxInverse[row][column] = augmentedMtx[row][column + SIZE];
+	}
+
+	// iterate
+	BaseVec<T, SIZE> eigenVector{};
+	eigenVector[0] = 1.0f;
+	for (int i = 0; i < iterationCount; ++i)
+		eigenVector = Normalize(Multiply(mtxInverse, eigenVector));
+
+	// return value
+	return eigenVector;
 }
