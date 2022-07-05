@@ -44,7 +44,7 @@ int main(int argc, char** argv)
     }
 
     // Get the eigenvalues
-    Vec<Columns(covariance)> eigenValues = QRAlgorithm(covariance, 10000, 0.0001f, "out/error.csv");
+    Vec<Columns(covariance)> eigenValues = QRAlgorithm(covariance, 10000, 0.0001f);
 
     // Sort from largest to smallest
     std::sort(eigenValues.begin(), eigenValues.end(), [](float a, float b) {return a >= b; });
@@ -65,13 +65,15 @@ int main(int argc, char** argv)
                 break;
             }
         }
-
-        // TODO: temp test!
-        for (int j = 0; j < Columns(covariance); ++j)
-        {
-            eigenVectors[i][j] /= eigenVectors[i][Columns(covariance) - 1];
-        }
     }
+
+    Mtx<Columns(covariance), Columns(covariance)> WT;
+    for (int i = 0; i < Columns(covariance); ++i)
+        SetRow(WT, i, eigenVectors[i]);
+
+    auto result = Multiply(data, WT);
+    int ijkl = 0;
+
 
     // TODO: do dimensional reduction and measure error as each dimension is reduced.
 
