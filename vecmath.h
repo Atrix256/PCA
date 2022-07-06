@@ -95,6 +95,12 @@ BaseVec<T, SIZE> operator*(float A, const BaseVec<T, SIZE>& B)
 }
 
 template <typename T, size_t SIZE>
+T LengthSq(const BaseVec<T, SIZE>& A)
+{
+	return Dot(A, A);
+}
+
+template <typename T, size_t SIZE>
 T Length(const BaseVec<T, SIZE>& A)
 {
 	return (T)sqrt(Dot(A, A));

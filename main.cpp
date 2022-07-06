@@ -64,8 +64,11 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
 
     // Recover the data back from the pca data
     Mtx<DATA_WIDTH, DATA_HEIGHT> recoveredData[Columns(WT)];
+    float RMSE[Columns(WT)];
     for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
     {
+        RMSE[componentCount] = 0.0f;
+
         recoveredData[componentCount] = Mtx<DATA_WIDTH, DATA_HEIGHT>{};
 
         for (int rowIndex = 0; rowIndex < DATA_HEIGHT; ++rowIndex)
@@ -74,7 +77,11 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
             {
                 recoveredData[componentCount][rowIndex] = recoveredData[componentCount][rowIndex] + pcaData[rowIndex][component] * eigenVectors[component];
             }
+
+            float squaredError = LengthSq(data[rowIndex] - recoveredData[componentCount][rowIndex]);
+            RMSE[componentCount] = Lerp(RMSE[componentCount], squaredError, 1.0f / float(rowIndex + 1));
         }
+        RMSE[componentCount] = sqrtf(RMSE[componentCount]);
     }
 
     // get the min and max of the recovered data, to frame the graphs
@@ -105,8 +112,7 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
         rdmax[columnIndex] = mid + halfWidth * 1.1f;
     }
 
-    // TODO: report error somehow, besides just showing graphs? Put it in title?
-    // TODO: maybe spit out eigenvectors?
+    // spit out the python scripts to make graphs
     char fileName[1024];
     for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
     {
@@ -118,6 +124,22 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
             "import numpy as np\n"
             "\n"
         );
+
+        // Print out eigen values and eigen vectors
+        fprintf(file, "# Eigen Values & Eigen (Principle Component) Vectors:\n");
+        for (int eigenIndex = 0; eigenIndex <= componentCount; ++eigenIndex)
+        {
+            fprintf(file, "# [%f] : [", eigenValues[eigenIndex]);
+            for (int componentIndex = 0; componentIndex < eigenVectors[eigenIndex].size(); ++componentIndex)
+            {
+                if (componentIndex > 0)
+                    fprintf(file, ", %f", eigenVectors[eigenIndex][componentIndex]);
+                else
+                    fprintf(file, "%f", eigenVectors[eigenIndex][componentIndex]);
+            }
+            fprintf(file, "]\n");
+        }
+        fprintf(file, "\n");
 
         // data
         for (int columnIndex = 0; columnIndex < DATA_WIDTH; ++columnIndex)
@@ -157,13 +179,14 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
             "\n"
         );
         fprintf(file,
-            "plt.title(\"%i of %i PCA Components\")\n"
+            "plt.title(\"%i of %i PCA Components\\nRMSE = %f\")\n"
             "plt.xlim([%f, %f])\n"
             "plt.ylim([%f, %f])\n"
             "plt.legend()\n"
             "plt.tight_layout()\n"
             "\n",
             componentCount+1, (int)Columns(WT),
+            RMSE[componentCount],
             rdmin[0], rdmax[0],
             rdmin[1], rdmax[1]
         );
