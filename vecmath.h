@@ -71,12 +71,27 @@ BaseVec<T, SIZE> operator-(const BaseVec<T, SIZE>& A, const BaseVec<T, SIZE>& B)
 }
 
 template <typename T, size_t SIZE>
+BaseVec<T, SIZE> operator+(const BaseVec<T, SIZE>& A, const BaseVec<T, SIZE>& B)
+{
+	BaseVec<T, SIZE> ret;
+	for (size_t i = 0; i < SIZE; ++i)
+		ret[i] = A[i] + B[i];
+	return ret;
+}
+
+template <typename T, size_t SIZE>
 BaseVec<T, SIZE> operator*(const BaseVec<T, SIZE>& A, float B)
 {
 	BaseVec<T, SIZE> ret;
 	for (size_t i = 0; i < SIZE; ++i)
 		ret[i] = A[i] * B;
 	return ret;
+}
+
+template <typename T, size_t SIZE>
+BaseVec<T, SIZE> operator*(float A, const BaseVec<T, SIZE>& B)
+{
+	return B * A;
 }
 
 template <typename T, size_t SIZE>

@@ -1,6 +1,5 @@
 #include "vecmath.h"
 #include <stdio.h>
-#include <direct.h>
 #include <algorithm>
 
 template <size_t WIDTH, size_t HEIGHT>
@@ -9,21 +8,11 @@ using Mtx = BaseMtx<float, WIDTH, HEIGHT>;
 template <size_t SIZE>
 using Vec = BaseVec<float, SIZE>;
 
-int main(int argc, char** argv)
+template <size_t DATA_WIDTH, size_t DATA_HEIGHT>
+void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
 {
-    _mkdir("out");
-
-    Mtx<3, 5> data =
-    {
-        90, 60, 90,
-        90, 90, 30,
-        60, 60, 60,
-        60, 60, 90,
-        30, 30, 30
-    };
-
     // Calculate the mean of the data
-    Vec<Columns(data)> mean;
+    Vec<DATA_WIDTH> mean;
     for (int i = 0; i < Columns(data); ++i)
     {
         mean[i] = 0.0f;
@@ -32,7 +21,7 @@ int main(int argc, char** argv)
     }
 
     // Make the covariance matrix
-    Mtx<Columns(data), Columns(data)> covariance;
+    Mtx<DATA_WIDTH, DATA_WIDTH> covariance;
     for (int i = 0; i < Columns(covariance); ++i)
     {
         for (int j = 0; j < Rows(covariance); ++j)
@@ -67,17 +56,134 @@ int main(int argc, char** argv)
         }
     }
 
+    // Transform the data into the PCA space
     Mtx<Columns(covariance), Columns(covariance)> WT;
-    for (int i = 0; i < Columns(covariance); ++i)
-        SetRow(WT, i, eigenVectors[i]);
+    for (int i = 0; i < Columns(WT); ++i)
+        SetColumn(WT, i, eigenVectors[i]);
+    Mtx<DATA_WIDTH, DATA_HEIGHT> pcaData = Multiply(data, WT);
 
-    auto result = Multiply(data, WT);
-    int ijkl = 0;
+    // Recover the data back from the pca data
+    Mtx<DATA_WIDTH, DATA_HEIGHT> recoveredData[Columns(WT)];
+    for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
+    {
+        recoveredData[componentCount] = Mtx<DATA_WIDTH, DATA_HEIGHT>{};
 
+        for (int rowIndex = 0; rowIndex < DATA_HEIGHT; ++rowIndex)
+        {
+            for (int component = 0; component <= componentCount; ++component)
+            {
+                recoveredData[componentCount][rowIndex] = recoveredData[componentCount][rowIndex] + pcaData[rowIndex][component] * eigenVectors[component];
+            }
+        }
+    }
 
-    // TODO: do dimensional reduction and measure error as each dimension is reduced.
+    // get the min and max of the recovered data, to frame the graphs
+    Vec<DATA_WIDTH> rdmin, rdmax;
+    std::fill(rdmin.begin(), rdmin.end(), FLT_MAX);
+    std::fill(rdmax.begin(), rdmax.end(), -FLT_MAX);
+    for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
+    {
+        for (int rowIndex = 0; rowIndex < DATA_HEIGHT; ++rowIndex)
+        {
+            for (int columnIndex = 0; columnIndex < DATA_WIDTH; ++columnIndex)
+            {
+                rdmin[columnIndex] = std::min(rdmin[columnIndex], recoveredData[componentCount][rowIndex][columnIndex]);
+                rdmin[columnIndex] = std::min(rdmin[columnIndex], data[rowIndex][columnIndex]);
 
-    return 0;
+                rdmax[columnIndex] = std::max(rdmax[columnIndex], recoveredData[componentCount][rowIndex][columnIndex]);
+                rdmax[columnIndex] = std::max(rdmax[columnIndex], data[rowIndex][columnIndex]);
+            }
+        }
+    }
+
+    // expand the min/max box a bit
+    for (int columnIndex = 0; columnIndex < DATA_WIDTH; ++columnIndex)
+    {
+        float mid = (rdmin[columnIndex] + rdmax[columnIndex]) / 2.0f;
+        float halfWidth = (rdmax[columnIndex] - rdmin[columnIndex]) / 2.0f;
+        rdmin[columnIndex] = mid - halfWidth * 1.1f;
+        rdmax[columnIndex] = mid + halfWidth * 1.1f;
+    }
+
+    // TODO: report error somehow, besides just showing graphs? Put it in title?
+    // TODO: maybe spit out eigenvectors?
+    char fileName[1024];
+    for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
+    {
+        sprintf_s(fileName, "out/%s.%i.py", fileNameBase, componentCount + 1);
+        FILE* file = nullptr;
+        fopen_s(&file, fileName, "w+t");
+        fprintf(file,
+            "import matplotlib.pyplot as plt\n"
+            "import numpy as np\n"
+            "\n"
+        );
+
+        // data
+        for (int columnIndex = 0; columnIndex < DATA_WIDTH; ++columnIndex)
+        {
+            fprintf(file, "data%i = [", columnIndex);
+            for (int rowIndex = 0; rowIndex < DATA_HEIGHT; ++rowIndex)
+            {
+                if (rowIndex > 0)
+                    fprintf(file, ", %f", data[rowIndex][columnIndex]);
+                else
+                    fprintf(file, "%f", data[rowIndex][columnIndex]);
+            }
+            fprintf(file, "]\n");
+        }
+
+        // recoveredData
+        fprintf(file, "\n");
+        for (int columnIndex = 0; columnIndex < DATA_WIDTH; ++columnIndex)
+        {
+            fprintf(file, "recoveredData%i = [", columnIndex);
+            for (int rowIndex = 0; rowIndex < DATA_HEIGHT; ++rowIndex)
+            {
+                if (rowIndex > 0)
+                    fprintf(file, ", %f", recoveredData[componentCount][rowIndex][columnIndex]);
+                else
+                    fprintf(file, "%f", recoveredData[componentCount][rowIndex][columnIndex]);
+            }
+            fprintf(file, "]\n");
+        }
+
+        fprintf(file,
+            "\n"
+            "fig = plt.figure()\n"
+            "\n"
+            "plt.scatter(data0, data1, label=\"Points\")\n"
+            "plt.scatter(recoveredData0, recoveredData1, marker=\"+\", label=\"PCA Points\")\n"
+            "\n"
+        );
+        fprintf(file,
+            "plt.title(\"%i of %i PCA Components\")\n"
+            "plt.xlim([%f, %f])\n"
+            "plt.ylim([%f, %f])\n"
+            "plt.legend()\n"
+            "plt.tight_layout()\n"
+            "\n",
+            componentCount+1, (int)Columns(WT),
+            rdmin[0], rdmax[0],
+            rdmin[1], rdmax[1]
+        );
+        fprintf(file, "fig.savefig(\"%s.%i.png\")\n", fileNameBase, componentCount + 1);
+        fclose(file);
+    }
+}
+
+int main(int argc, char** argv)
+{
+    Mtx<3, 5> data =
+    {
+        90, 60, 90,
+        90, 90, 30,
+        60, 60, 60,
+        60, 60, 90,
+        30, 30, 30
+    };
+
+    DoTest(data, "test");
 }
 
 /*
