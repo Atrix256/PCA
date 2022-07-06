@@ -3,10 +3,10 @@
 #include <algorithm>
 
 template <size_t WIDTH, size_t HEIGHT>
-using Mtx = BaseMtx<float, WIDTH, HEIGHT>;
+using Mtx = BaseMtx<double, WIDTH, HEIGHT>;
 
 template <size_t SIZE>
-using Vec = BaseVec<float, SIZE>;
+using Vec = BaseVec<double, SIZE>;
 
 template <size_t DATA_WIDTH, size_t DATA_HEIGHT>
 void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
@@ -17,7 +17,7 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
     {
         mean[i] = 0.0f;
         for (int j = 0; j < Rows(data); ++j)
-            mean[i] = Lerp(mean[i], data[j][i], 1.0f / float(j + 1));
+            mean[i] = Lerp(mean[i], data[j][i], 1.0 / double(j + 1));
     }
 
     // Make the covariance matrix
@@ -33,16 +33,16 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
     }
 
     // Get the eigenvalues
-    Vec<Columns(covariance)> eigenValues = QRAlgorithm(covariance, 10000, 0.0001f);
+    Vec<Columns(covariance)> eigenValues = QRAlgorithm(covariance, 10000, 0.0001);
 
     // Sort from largest to smallest
-    std::sort(eigenValues.begin(), eigenValues.end(), [](float a, float b) {return a >= b; });
+    std::sort(eigenValues.begin(), eigenValues.end(), [](double a, double b) {return a >= b; });
 
     // Solve for eigenvectors for each eigenvalue
     std::array<Vec<Columns(covariance)>, Columns(covariance)> eigenVectors;
     for (int i = 0; i < eigenValues.size(); ++i)
     {
-        eigenVectors[i] = InverseIteration(covariance, eigenValues[i], 100);
+        eigenVectors[i] = InverseIteration(covariance, (float)eigenValues[i], 100);
 
         // Get a better eigen value
         Vec<Columns(covariance)> test = Multiply(covariance, eigenVectors[i]);
@@ -64,10 +64,10 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
 
     // Recover the data back from the pca data
     Mtx<DATA_WIDTH, DATA_HEIGHT> recoveredData[Columns(WT)];
-    float RMSE[Columns(WT)];
+    double RMSE[Columns(WT)];
     for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
     {
-        RMSE[componentCount] = 0.0f;
+        RMSE[componentCount] = 0.0;
 
         recoveredData[componentCount] = Mtx<DATA_WIDTH, DATA_HEIGHT>{};
 
@@ -78,10 +78,10 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
                 recoveredData[componentCount][rowIndex] = recoveredData[componentCount][rowIndex] + pcaData[rowIndex][component] * eigenVectors[component];
             }
 
-            float squaredError = LengthSq(data[rowIndex] - recoveredData[componentCount][rowIndex]);
-            RMSE[componentCount] = Lerp(RMSE[componentCount], squaredError, 1.0f / float(rowIndex + 1));
+            double squaredError = LengthSq(data[rowIndex] - recoveredData[componentCount][rowIndex]);
+            RMSE[componentCount] = Lerp(RMSE[componentCount], squaredError, 1.0 / double(rowIndex + 1));
         }
-        RMSE[componentCount] = sqrtf(RMSE[componentCount]);
+        RMSE[componentCount] = sqrt(RMSE[componentCount]);
     }
 
     // get the min and max of the recovered data, to frame the graphs
@@ -106,8 +106,8 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
     // expand the min/max box a bit
     for (int columnIndex = 0; columnIndex < DATA_WIDTH; ++columnIndex)
     {
-        float mid = (rdmin[columnIndex] + rdmax[columnIndex]) / 2.0f;
-        float halfWidth = (rdmax[columnIndex] - rdmin[columnIndex]) / 2.0f;
+        double mid = (rdmin[columnIndex] + rdmax[columnIndex]) / 2.0f;
+        double halfWidth = (rdmax[columnIndex] - rdmin[columnIndex]) / 2.0f;
         rdmin[columnIndex] = mid - halfWidth * 1.1f;
         rdmax[columnIndex] = mid + halfWidth * 1.1f;
     }
@@ -197,6 +197,7 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
 
 int main(int argc, char** argv)
 {
+    /*
     Mtx<3, 5> data =
     {
         90, 60, 90,
@@ -205,15 +206,27 @@ int main(int argc, char** argv)
         60, 60, 90,
         30, 30, 30
     };
+    */
+
+    Mtx<2, 4> data =
+    {
+        90, 60,
+        90, 90,
+        60, 60,
+        30, 30,
+    };
 
     DoTest(data, "test");
 }
+
+// TODO: center data points before PCA!
 
 /*
 TODO:
 - link to this: https://towardsdatascience.com/the-mathematics-behind-principal-component-analysis-fff2d7f4b643
 * Steve Canon says Householder reflections are better and easier to implement (for QR decomp i think)
  * could also look at shifts.
+* more on PCA https://towardsdatascience.com/principal-component-analysis-explained-d404c34d76e7
 
 PCA Algorithm:
 * part of it is:

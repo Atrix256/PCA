@@ -50,6 +50,11 @@ inline float Lerp(float A, float B, float t)
 	return (1.0f - t) * A + t * B;
 }
 
+inline double Lerp(double A, double B, double t)
+{
+	return (1.0 - t) * A + t * B;
+}
+
 // ==================================================== Vector Math ====================================================
 
 template <typename T, size_t SIZE>
@@ -80,7 +85,7 @@ BaseVec<T, SIZE> operator+(const BaseVec<T, SIZE>& A, const BaseVec<T, SIZE>& B)
 }
 
 template <typename T, size_t SIZE>
-BaseVec<T, SIZE> operator*(const BaseVec<T, SIZE>& A, float B)
+BaseVec<T, SIZE> operator*(const BaseVec<T, SIZE>& A, T B)
 {
 	BaseVec<T, SIZE> ret;
 	for (size_t i = 0; i < SIZE; ++i)
@@ -89,9 +94,18 @@ BaseVec<T, SIZE> operator*(const BaseVec<T, SIZE>& A, float B)
 }
 
 template <typename T, size_t SIZE>
-BaseVec<T, SIZE> operator*(float A, const BaseVec<T, SIZE>& B)
+BaseVec<T, SIZE> operator*(T A, const BaseVec<T, SIZE>& B)
 {
 	return B * A;
+}
+
+template <typename T, size_t SIZE>
+BaseVec<T, SIZE> operator/(const BaseVec<T, SIZE>& A, T B)
+{
+	BaseVec<T, SIZE> ret;
+	for (size_t i = 0; i < SIZE; ++i)
+		ret[i] = A[i] / B;
+	return ret;
 }
 
 template <typename T, size_t SIZE>
@@ -274,9 +288,16 @@ BaseMtx<T, WIDTH, HEIGHT> GramSchmidt(const BaseMtx<T, WIDTH, HEIGHT>& mtx)
 		SetColumn(ret, column, vec);
 	}
 
-	// Normalize the column
+	// Normalize the columns
 	for (int column = 0; column < WIDTH; ++column)
-		SetColumn(ret, column, Normalize(Column(ret, column)));
+	{
+		BaseVec<T, WIDTH> col = Column(ret, column);
+		double len = Length(col);
+		if (len == 0.0)
+			continue;
+
+		SetColumn(ret, column, col / len);
+	}
 
 	return ret;
 }
@@ -293,11 +314,11 @@ void QRDecomposition(const BaseMtxSq<T, SIZE>& mtx, BaseMtxSq<T, SIZE>& Q, BaseM
 // Iteratively uses QR decomposition and remakes the matrix as R*Q until convergence.
 // QR decomposition uses the Gram-Schmidt process (modified to the more stable version)
 template <typename T, size_t SIZE>
-BaseVec<T, SIZE> QRAlgorithm(const BaseMtxSq<T, SIZE>& mtx, int maxIterations, float maxError, const char* debugFileName = nullptr)
+BaseVec<T, SIZE> QRAlgorithm(const BaseMtxSq<T, SIZE>& mtx, int maxIterations, double maxError, const char* debugFileName = nullptr)
 {
 	BaseMtxSq<T, SIZE> m = mtx;
-	float maxabserror = 0.0f;
-	float avgerror = 0.0f;
+	double maxabserror = 0.0f;
+	double avgerror = 0.0f;
 	int counterror = 0;
 
 	// Calculate the starting stats
@@ -309,7 +330,7 @@ BaseVec<T, SIZE> QRAlgorithm(const BaseMtxSq<T, SIZE>& mtx, int maxIterations, f
 			{
 				maxabserror = std::max(maxabserror, std::abs(m[y][x]));
 				counterror++;
-				avgerror = Lerp(avgerror, std::abs(m[y][x]), 1.0f / float(counterror));
+				avgerror = Lerp(avgerror, std::abs(m[y][x]), 1.0 / double(counterror));
 			}
 		}
 	}
@@ -347,7 +368,7 @@ BaseVec<T, SIZE> QRAlgorithm(const BaseMtxSq<T, SIZE>& mtx, int maxIterations, f
 				{
 					maxabserror = std::max(maxabserror, std::abs(m[y][x]));
 					counterror++;
-					avgerror = Lerp(avgerror, std::abs(m[y][x]), 1.0f / float(counterror));
+					avgerror = Lerp(avgerror, std::abs(m[y][x]), 1.0 / double(counterror));
 				}
 			}
 		}
