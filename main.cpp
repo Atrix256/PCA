@@ -219,7 +219,7 @@ int main(int argc, char** argv)
     DoTest(data, "test");
 }
 
-// TODO: center data points before PCA!
+// TODO: center data points before PCA! Compare centering vs not.
 
 /*
 TODO:
@@ -227,6 +227,11 @@ TODO:
 * Steve Canon says Householder reflections are better and easier to implement (for QR decomp i think)
  * could also look at shifts.
 * more on PCA https://towardsdatascience.com/principal-component-analysis-explained-d404c34d76e7
+
+* mention non linear dimensional reduction as something to google
+* mention how to do PCA in python (numpy?)
+* also, suggest using eigen in production quality things: https://eigen.tuxfamily.org/
+* link to Bart's PCA post for PBR texture compression.
 
 PCA Algorithm:
 * part of it is:
