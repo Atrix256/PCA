@@ -229,9 +229,9 @@ TODO:
 * more on PCA https://towardsdatascience.com/principal-component-analysis-explained-d404c34d76e7
 
 * mention non linear dimensional reduction as something to google
-* mention how to do PCA in python (numpy?)
+* mention how to do PCA in python (numpy?) https://stats.stackexchange.com/questions/235882/pca-in-numpy-and-sklearn-produces-different-results
 * also, suggest using eigen in production quality things: https://eigen.tuxfamily.org/
-* link to Bart's PCA post for PBR texture compression.
+* link to Bart's PCA post for PBR texture compression. https://bartwronski.com/2020/05/21/dimensionality-reduction-for-image-and-texture-set-compression/
 
 PCA Algorithm:
 * part of it is:
