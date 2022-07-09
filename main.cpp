@@ -19,8 +19,6 @@ void Report(
     const Vec<DATA_WIDTH>& RMSE,
     const char* fileNameBase)
 {
-    // TODO: use this to analyze box, gauss, the 3d exmample form that website. what else?
-
     printf("%s.txt\n", fileNameBase);
 
     char fileName[1024];
@@ -51,7 +49,6 @@ void Report(
     }
     fprintf(file, "\n");
 
-
     fprintf(file, "Data:\n");
     for (int i = 0; i < DATA_HEIGHT; ++i)
     {
@@ -72,7 +69,6 @@ void Report(
             continue;
 
         fprintf(file, "\n========================\n%i Components\n========================\n\n", componentCount + 1);
-
 
         for (int i = 0; i < DATA_HEIGHT; ++i)
         {
@@ -329,6 +325,21 @@ int main(int argc, char** argv)
 {
     _mkdir("out");
 
+    // box blur - the covariance matrix is all zeros
+    /*
+    {
+        Mtx<4, 4> data;
+
+        for (auto& i : data)
+            for (auto& j : i)
+                j = 1.0f / float(Rows(data) * Columns(data));
+
+        DoTest(data, "boxU", false);
+    }
+    */
+
+    // TODO: gaussian kernel
+
     // test from the website
     {
         Mtx<3, 5> data =
@@ -386,10 +397,8 @@ int main(int argc, char** argv)
     }
 }
 
-// TODO: we center the covariance matrix but not the data. Should we always center the data and not the covariance?
 // TODO: what is eigendecomposition? there's a link to the previous article that does it.
 // TODO: show eigenvectors along with the graph.
-// TODO: if there are more or less than 2 dimensions, report things differently. Probably should have some examples of that to show it working.
 // NEXT: SVD with eigen library
 
 /*
