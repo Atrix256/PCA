@@ -19,10 +19,6 @@ void Report(
     const Vec<DATA_WIDTH>& RMSE,
     const char* fileNameBase)
 {
-    // TODO: For each component count:
-    //  measure error for each data point
-    //  Report RMSE
-    //  Report eigenvectors and eigenvalues
     // TODO: use this to analyze box, gauss, the 3d exmample form that website. what else?
 
     printf("%s.txt\n", fileNameBase);
@@ -48,7 +44,11 @@ void Report(
     fprintf(file, "\nRMSE for component counts:\n");
 
     for (int componentCount = 0; componentCount < DATA_WIDTH; ++componentCount)
+    {
+        if (eigenValues[componentCount] == 0.0f)
+            continue;
         fprintf(file, "[%i] %f\n", componentCount + 1, RMSE[componentCount]);
+    }
     fprintf(file, "\n");
 
 
@@ -89,19 +89,9 @@ void Report(
     }
 
     fclose(file);
-}
 
-// 2D data reporting
-template <size_t DATA_HEIGHT>
-void Report(
-    const Mtx<2, DATA_HEIGHT>& data,
-    const Mtx<2, DATA_HEIGHT> recoveredData[],
-    const Vec<2>& eigenValues,
-    const std::array<Vec<2>, 2>& eigenVectors,
-    const Vec<2>& RMSE,
-    const char* fileNameBase)
-{
-    static const size_t DATA_WIDTH = 2;
+    if (DATA_WIDTH != 2)
+        return;
 
     // get the min and max of the recovered data, to frame the graphs
     Vec<DATA_WIDTH> rdmin, rdmax;
@@ -135,7 +125,6 @@ void Report(
     }
 
     // spit out the python scripts to make graphs
-    char fileName[1024];
     for (int componentCount = 0; componentCount < DATA_WIDTH; ++componentCount)
     {
         if (eigenValues[componentCount] == 0.0f)
