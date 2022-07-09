@@ -39,6 +39,7 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
         {
             covariance[i][j] = 0.0f;
             for (int k = 0; k < Rows(data); ++k)
+                //covariance[i][j] += (data[k][i]) * (data[k][j]) / float(Rows(data));
                 covariance[i][j] += (data[k][i] - mean[i]) * (data[k][j] - mean[j]) / float(Rows(data));
         }
     }
@@ -263,7 +264,6 @@ int main(int argc, char** argv)
 
     // Test centering vs not.
     // This also shows how it assumes the data is centered. it doesn't have a second axis to fit the data perfectly.
-    // TODO: is this due to the covariance matrix being centered?
     {
         Mtx<2, 3> data =
         {
@@ -289,6 +289,8 @@ int main(int argc, char** argv)
         DoTest(data, "centerTest2C", true);
     }
 }
+
+// TODO: we center the covariance matrix but not the data. Should we always center the data and not the covariance?
 
 /*
 Notes:
