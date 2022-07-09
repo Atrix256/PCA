@@ -291,6 +291,10 @@ int main(int argc, char** argv)
 }
 
 // TODO: we center the covariance matrix but not the data. Should we always center the data and not the covariance?
+// TODO: what is eigendecomposition? there's a link to the previous article that does it.
+// TODO: show eigenvectors along with the graph.
+// TODO: if there are more or less than 2 dimensions, report things differently. Probably should have some examples of that to show it working.
+// NEXT: SVD with eigen library
 
 /*
 Notes:
