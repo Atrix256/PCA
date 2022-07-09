@@ -1,6 +1,7 @@
 #include "vecmath.h"
 #include <stdio.h>
 #include <algorithm>
+#include <direct.h>
 
 template <size_t WIDTH, size_t HEIGHT>
 using Mtx = BaseMtx<double, WIDTH, HEIGHT>;
@@ -9,7 +10,7 @@ template <size_t SIZE>
 using Vec = BaseVec<double, SIZE>;
 
 template <size_t DATA_WIDTH, size_t DATA_HEIGHT>
-void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
+void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool centerData)
 {
     // Calculate the mean of the data
     Vec<DATA_WIDTH> mean;
@@ -18,6 +19,14 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
         mean[i] = 0.0f;
         for (int j = 0; j < Rows(data); ++j)
             mean[i] = Lerp(mean[i], data[j][i], 1.0 / double(j + 1));
+    }
+
+    // center the data if we should
+    if (centerData)
+    {
+        for (int j = 0; j < Rows(data); ++j)
+            data[j] = data[j] - mean;
+        mean = Vec<DATA_WIDTH>{};
     }
 
     // Make the covariance matrix
@@ -190,13 +199,19 @@ void DoTest(const Mtx<DATA_WIDTH, DATA_HEIGHT>& data, const char* fileNameBase)
             rdmin[0], rdmax[0],
             rdmin[1], rdmax[1]
         );
-        fprintf(file, "fig.savefig(\"%s.%i.png\")\n", fileNameBase, componentCount + 1);
+        fprintf(file, "fig.savefig(\"out/%s.%i.png\")\n", fileNameBase, componentCount + 1);
         fclose(file);
+
+        // run the python file
+        sprintf_s(fileName, "python out/%s.%i.py", fileNameBase, componentCount + 1);
+        system(fileName);
     }
 }
 
 int main(int argc, char** argv)
 {
+    _mkdir("out");
+
     /*
     Mtx<3, 5> data =
     {
@@ -216,12 +231,19 @@ int main(int argc, char** argv)
         30, 30,
     };
 
-    DoTest(data, "test");
+    DoTest(data, "test", false);
+    DoTest(data, "testCentered", true);
 }
 
-// TODO: center data points before PCA! Compare centering vs not.
+// TODO: A good piece of data to test would be a box blur and gaussian blur. should have zero eigenvalues since they are seperable.
+// TODO: run the python scripts after generating them, instead of a batch file.
 
 /*
+Notes:
+* when centering data, you have another piece of data to reconstruct it.
+ * compare error of centered vs not
+* PCA through SVD is supposed to be better. maybe next blog post.
+
 TODO:
 - link to this: https://towardsdatascience.com/the-mathematics-behind-principal-component-analysis-fff2d7f4b643
 * Steve Canon says Householder reflections are better and easier to implement (for QR decomp i think)
