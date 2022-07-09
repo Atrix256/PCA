@@ -147,6 +147,8 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
         if (eigenValues[componentCount] == 0.0f)
             continue;
 
+        printf("%s.%i.py\n", fileNameBase, componentCount + 1);
+
         sprintf_s(fileName, "out/%s.%i.py", fileNameBase, componentCount + 1);
         FILE* file = nullptr;
         fopen_s(&file, fileName, "w+t");
@@ -246,7 +248,6 @@ int main(int argc, char** argv)
     */
 
     // Basic data test
-    if (false) // TODO: temp test
     {
         Mtx<2, 4> data =
         {
@@ -256,11 +257,13 @@ int main(int argc, char** argv)
             30, 30,
         };
 
-        DoTest(data, "test", false);
+        DoTest(data, "testU", false);
         DoTest(data, "testC", true);
     }
 
-    // Test centering vs not
+    // Test centering vs not.
+    // This also shows how it assumes the data is centered. it doesn't have a second axis to fit the data perfectly.
+    // TODO: is this due to the covariance matrix being centered?
     {
         Mtx<2, 3> data =
         {
@@ -269,14 +272,23 @@ int main(int argc, char** argv)
             20, 12
         };
 
-        DoTest(data, "centerTestU", false);
-        DoTest(data, "centerTestC", true);
+        DoTest(data, "centerTest1U", false);
+        DoTest(data, "centerTest1C", true);
+    }
+
+    // Same, but now they aren't colinear
+    {
+        Mtx<2, 3> data =
+        {
+            0, 10,
+            10, 11,
+            20, 20
+        };
+
+        DoTest(data, "centerTest2U", false);
+        DoTest(data, "centerTest2C", true);
     }
 }
-
-// TODO: A good piece of data to test would be a box blur and gaussian blur. should have zero eigenvalues since they are seperable.
-// actually no. it doesn't fit correctly.
-// TODO: run the python scripts after generating them, instead of a batch file.
 
 /*
 Notes:
@@ -286,7 +298,6 @@ Notes:
 * PCA basically assumes data is centered.
 * was looking to try to do a piecewise PCA fit to data, and maybe higher order curves with PCA. doesn't seem to be the thing to use. "total least squares" and "non linear dimensionality reduction"
 
-TODO:
 - link to this: https://towardsdatascience.com/the-mathematics-behind-principal-component-analysis-fff2d7f4b643
 * Steve Canon says Householder reflections are better and easier to implement (for QR decomp i think)
  * could also look at shifts.
