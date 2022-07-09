@@ -22,10 +22,12 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
     }
 
     // center the data if we should
+    Vec<DATA_WIDTH> dataOffset{};
     if (centerData)
     {
         for (int j = 0; j < Rows(data); ++j)
             data[j] = data[j] - mean;
+        dataOffset = mean * -1.0;
         mean = Vec<DATA_WIDTH>{};
     }
 
@@ -51,6 +53,12 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
     std::array<Vec<Columns(covariance)>, Columns(covariance)> eigenVectors;
     for (int i = 0; i < eigenValues.size(); ++i)
     {
+        if (eigenValues[i] == 0.0f)
+        {
+            eigenVectors[i] = Vec<Columns(covariance)>{};
+            continue;
+        }
+
         eigenVectors[i] = InverseIteration(covariance, (float)eigenValues[i], 100);
 
         // Get a better eigen value
@@ -71,9 +79,16 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
         SetColumn(WT, i, eigenVectors[i]);
     Mtx<DATA_WIDTH, DATA_HEIGHT> pcaData = Multiply(data, WT);
 
+    // un center the data if we centered it before
+    if (centerData)
+    {
+        for (int j = 0; j < Rows(data); ++j)
+            data[j] = data[j] - dataOffset;
+    }
+
     // Recover the data back from the pca data
     Mtx<DATA_WIDTH, DATA_HEIGHT> recoveredData[Columns(WT)];
-    double RMSE[Columns(WT)];
+    Vec<Columns(WT)> RMSE{};
     for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
     {
         RMSE[componentCount] = 0.0;
@@ -82,6 +97,7 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
 
         for (int rowIndex = 0; rowIndex < DATA_HEIGHT; ++rowIndex)
         {
+            recoveredData[componentCount][rowIndex] = dataOffset * -1.0;
             for (int component = 0; component <= componentCount; ++component)
             {
                 recoveredData[componentCount][rowIndex] = recoveredData[componentCount][rowIndex] + pcaData[rowIndex][component] * eigenVectors[component];
@@ -99,6 +115,9 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
     std::fill(rdmax.begin(), rdmax.end(), -FLT_MAX);
     for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
     {
+        if (eigenValues[componentCount] == 0.0f)
+            continue;
+
         for (int rowIndex = 0; rowIndex < DATA_HEIGHT; ++rowIndex)
         {
             for (int columnIndex = 0; columnIndex < DATA_WIDTH; ++columnIndex)
@@ -125,6 +144,9 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
     char fileName[1024];
     for (int componentCount = 0; componentCount < Columns(WT); ++componentCount)
     {
+        if (eigenValues[componentCount] == 0.0f)
+            continue;
+
         sprintf_s(fileName, "out/%s.%i.py", fileNameBase, componentCount + 1);
         FILE* file = nullptr;
         fopen_s(&file, fileName, "w+t");
@@ -223,19 +245,37 @@ int main(int argc, char** argv)
     };
     */
 
-    Mtx<2, 4> data =
+    // Basic data test
+    if (false) // TODO: temp test
     {
-        90, 60,
-        90, 90,
-        60, 60,
-        30, 30,
-    };
+        Mtx<2, 4> data =
+        {
+            90, 60,
+            90, 90,
+            60, 60,
+            30, 30,
+        };
 
-    DoTest(data, "test", false);
-    DoTest(data, "testCentered", true);
+        DoTest(data, "test", false);
+        DoTest(data, "testC", true);
+    }
+
+    // Test centering vs not
+    {
+        Mtx<2, 3> data =
+        {
+            0, 10,
+            10, 11,
+            20, 12
+        };
+
+        DoTest(data, "centerTestU", false);
+        DoTest(data, "centerTestC", true);
+    }
 }
 
 // TODO: A good piece of data to test would be a box blur and gaussian blur. should have zero eigenvalues since they are seperable.
+// actually no. it doesn't fit correctly.
 // TODO: run the python scripts after generating them, instead of a batch file.
 
 /*
@@ -243,6 +283,8 @@ Notes:
 * when centering data, you have another piece of data to reconstruct it.
  * compare error of centered vs not
 * PCA through SVD is supposed to be better. maybe next blog post.
+* PCA basically assumes data is centered.
+* was looking to try to do a piecewise PCA fit to data, and maybe higher order curves with PCA. doesn't seem to be the thing to use. "total least squares" and "non linear dimensionality reduction"
 
 TODO:
 - link to this: https://towardsdatascience.com/the-mathematics-behind-principal-component-analysis-fff2d7f4b643
