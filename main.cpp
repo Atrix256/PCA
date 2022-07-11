@@ -288,7 +288,7 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
     Vec<Columns(covariance)> eigenValues = QRAlgorithm(covariance, 10000, 0.0001);
 
     // Sort from largest to smallest
-    std::sort(eigenValues.begin(), eigenValues.end(), [](double a, double b) {return a >= b; });
+    std::sort(eigenValues.begin(), eigenValues.end(), [](double a, double b) {return b < a; });
 
     // Solve for eigenvectors for each eigenvalue
     std::array<Vec<Columns(covariance)>, Columns(covariance)> eigenVectors;
@@ -300,7 +300,7 @@ void DoTest(Mtx<DATA_WIDTH, DATA_HEIGHT> data, const char* fileNameBase, bool ce
             continue;
         }
 
-        eigenVectors[i] = InverseIteration(covariance, (float)eigenValues[i], 100);
+        eigenVectors[i] = InverseIteration(covariance, (float)eigenValues[i], 10000);
 
         // Get a better eigen value
         Vec<Columns(covariance)> test = Multiply(covariance, eigenVectors[i]);
@@ -363,6 +363,33 @@ int main(int argc, char** argv)
 {
     _mkdir("out");
 
+    // box blur - the covariance matrix is all zeros so is strange
+    {
+        Mtx<3, 3> data;
+
+        for (auto& i : data)
+            for (auto& j : i)
+                j = 1.0f / float(Rows(data) * Columns(data));
+
+        DoTest(data, "boxU", false);
+        DoTest(data, "boxC", true);
+    }
+
+    // gaussian blur. Sigma 0.3
+    // 1D kernel is 0.0478,	0.9044,	0.0478
+    // http://demofox.org/gauss.html
+    {
+        Mtx<3, 3> data =
+        {
+            0.0023,	0.0432,	0.0023,
+            0.0432,	0.8180,	0.0432,
+            0.0023,	0.0432,	0.0023
+        };
+
+        DoTest(data, "gaussU", false);
+        DoTest(data, "gaussC", true);
+    }
+
     // test from the website
     {
         Mtx<3, 5> data =
@@ -419,6 +446,8 @@ int main(int argc, char** argv)
         DoTest(data, "centerTest2C", true);
     }
 }
+
+// TODO: remake links to vecmath.h in post!
 
 // NEXT: SVD with eigen library
 

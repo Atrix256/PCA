@@ -284,7 +284,11 @@ BaseMtx<T, WIDTH, HEIGHT> GramSchmidt(const BaseMtx<T, WIDTH, HEIGHT>& mtx)
 	{
 		BaseVec<T, HEIGHT> vec = Column(mtx, column);
 		for (int i = 0; i < column; ++i)
-			vec = vec - ProjectVectorAOntoVectorB(vec, Column(ret, i));
+		{
+			BaseVec<T, HEIGHT> col = Column(ret, i);
+			if (LengthSq(col) != 0.0f)
+				vec = vec - ProjectVectorAOntoVectorB(vec, col);
+		}
 		SetColumn(ret, column, vec);
 	}
 
