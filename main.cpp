@@ -446,36 +446,3 @@ int main(int argc, char** argv)
         DoTest(data, "centerTest2C", true);
     }
 }
-
-// TODO: remake links to vecmath.h in post!
-
-// NEXT: SVD with eigen library
-
-/*
-Notes:
-* when centering data, you have another piece of data to reconstruct it.
- * compare error of centered vs not
-* PCA through SVD is supposed to be better. maybe next blog post.
-* PCA basically assumes data is centered.
-* was looking to try to do a piecewise PCA fit to data, and maybe higher order curves with PCA. doesn't seem to be the thing to use. "total least squares" and "non linear dimensionality reduction"
-
-- link to this: https://towardsdatascience.com/the-mathematics-behind-principal-component-analysis-fff2d7f4b643
-* Steve Canon says Householder reflections are better and easier to implement (for QR decomp i think)
- * could also look at shifts.
-* more on PCA https://towardsdatascience.com/principal-component-analysis-explained-d404c34d76e7
-
-* mention non linear dimensional reduction as something to google
-* mention how to do PCA in python (numpy?) https://stats.stackexchange.com/questions/235882/pca-in-numpy-and-sklearn-produces-different-results
-* also, suggest using eigen in production quality things: https://eigen.tuxfamily.org/
-* link to Bart's PCA post for PBR texture compression. https://bartwronski.com/2020/05/21/dimensionality-reduction-for-image-and-texture-set-compression/
-
-PCA Algorithm:
-* part of it is:
-* get eigenvalues from covariance matrix using QR algorithm with grant schmidt process
- * Gram Schmidt: https://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process
- * QR Decomp: https://en.wikipedia.org/wiki/QR_decomposition
- * QR algorithm: https://en.wikipedia.org/wiki/QR_algorithm
- ! There are other eigenvector/value algorithms! and also other choices to make in QR decomp.
-* get eigenvectors using inverse iteration algorithm. https://en.wikipedia.org/wiki/Inverse_iteration
-! you can get better eigenvalues i reckon at this point! not sure though
-*/
