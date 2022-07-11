@@ -363,36 +363,6 @@ int main(int argc, char** argv)
 {
     _mkdir("out");
 
-    // box blur - the covariance matrix is all zeros so this doesn't work
-    /*
-    {
-        Mtx<5, 5> data;
-
-        for (auto& i : data)
-            for (auto& j : i)
-                j = 1.0f / float(Rows(data) * Columns(data));
-
-        DoTest(data, "boxU", false);
-    }
-    */
-
-    // gaussian blur. Sigma 0.3
-    // 1D kernel is 0.0478,	0.9044,	0.0478
-    // http://demofox.org/gauss.html
-    {
-        Mtx<3, 3> data =
-        {
-            0.0023,	0.0432,	0.0023,
-            0.0432,	0.8180,	0.0432,
-            0.0023,	0.0432,	0.0023
-        };
-
-        // TODO: the result isn't quite right
-
-        DoTest(data, "gaussU", false);
-        DoTest(data, "gaussC", true);
-    }
-
     // test from the website
     {
         Mtx<3, 5> data =
@@ -403,8 +373,6 @@ int main(int argc, char** argv)
             60, 60, 90,
             30, 30, 30
         };
-
-        // TODO: verify you get the same eigens as the website
 
         DoTest(data, "test3DU", false);
         DoTest(data, "test3DC", true);
