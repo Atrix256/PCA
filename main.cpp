@@ -9,7 +9,6 @@ using Mtx = BaseMtx<double, WIDTH, HEIGHT>;
 template <size_t SIZE>
 using Vec = BaseVec<double, SIZE>;
 
-// ND data reporting
 template <size_t DATA_WIDTH, size_t DATA_HEIGHT>
 void Report(
     const Mtx<DATA_WIDTH, DATA_HEIGHT>& data,
@@ -88,6 +87,43 @@ void Report(
 
     if (DATA_WIDTH != 2)
         return;
+
+    // make and run python file to show eigenvectors
+    {
+        printf("%s.py\n", fileNameBase);
+
+        sprintf_s(fileName, "out/%s.py", fileNameBase);
+        FILE* file = nullptr;
+        fopen_s(&file, fileName, "w+t");
+
+        fprintf(file,
+            "import numpy as np\n"
+            "import matplotlib.pyplot as plt\n"
+            "\n"
+            "fig = plt.figure()\n"
+            "ax = fig.add_subplot(111)\n"
+            "ax.set_aspect('equal', adjustable='box')\n"
+            "\n"
+        );
+
+        static const char colors[2] = {'r', 'g'};
+        for (int eigenIndex = 0; eigenIndex < DATA_WIDTH; ++eigenIndex)
+            fprintf(file, "plt.arrow(0, 0, %f, %f, color='%c', label=\"Eigen value %f\")\n", eigenVectors[eigenIndex][0], eigenVectors[eigenIndex][1], colors[eigenIndex], eigenValues[eigenIndex]);
+
+        fprintf(file,
+            "plt.title(\"Eigen Vectors\")\n"
+            "plt.xlim([-1.1, 1.1])\n"
+            "plt.ylim([-1.1, 1.1])\n"
+            "plt.legend()\n"
+            "plt.tight_layout()\n"
+            "\n"
+            "fig.savefig(\"out/%s.png\")\n", fileNameBase);
+        fclose(file);
+
+        // run the python file
+        sprintf_s(fileName, "python out/%s.py", fileNameBase);
+        system(fileName);
+    }
 
     // get the min and max of the recovered data, to frame the graphs
     Vec<DATA_WIDTH> rdmin, rdmax;
@@ -185,6 +221,8 @@ void Report(
         fprintf(file,
             "\n"
             "fig = plt.figure()\n"
+            "ax = fig.add_subplot(111)\n"
+            "ax.set_aspect('equal', adjustable='box')\n"
             "\n"
             "plt.scatter(data0, data1, label=\"Points\")\n"
             "plt.scatter(recoveredData0, recoveredData1, marker=\"+\", label=\"PCA Points\")\n"
@@ -325,10 +363,10 @@ int main(int argc, char** argv)
 {
     _mkdir("out");
 
-    // box blur - the covariance matrix is all zeros
+    // box blur - the covariance matrix is all zeros so this doesn't work
     /*
     {
-        Mtx<4, 4> data;
+        Mtx<5, 5> data;
 
         for (auto& i : data)
             for (auto& j : i)
@@ -338,7 +376,22 @@ int main(int argc, char** argv)
     }
     */
 
-    // TODO: gaussian kernel
+    // gaussian blur. Sigma 0.3
+    // 1D kernel is 0.0478,	0.9044,	0.0478
+    // http://demofox.org/gauss.html
+    {
+        Mtx<3, 3> data =
+        {
+            0.0023,	0.0432,	0.0023,
+            0.0432,	0.8180,	0.0432,
+            0.0023,	0.0432,	0.0023
+        };
+
+        // TODO: the result isn't quite right
+
+        DoTest(data, "gaussU", false);
+        DoTest(data, "gaussC", true);
+    }
 
     // test from the website
     {
@@ -350,6 +403,8 @@ int main(int argc, char** argv)
             60, 60, 90,
             30, 30, 30
         };
+
+        // TODO: verify you get the same eigens as the website
 
         DoTest(data, "test3DU", false);
         DoTest(data, "test3DC", true);
@@ -397,8 +452,6 @@ int main(int argc, char** argv)
     }
 }
 
-// TODO: what is eigendecomposition? there's a link to the previous article that does it.
-// TODO: show eigenvectors along with the graph.
 // NEXT: SVD with eigen library
 
 /*
